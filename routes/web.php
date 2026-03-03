@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Admin\AnalysisSettingController;
-use App\Http\Controllers\Admin\AnalysisTemplateController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\DashboardWeightController;
 use App\Http\Controllers\Admin\OperationsDashboardController;
@@ -62,12 +60,6 @@ Route::middleware('auth')->group(function () {
             Route::post('periodos/{period}/close', [PeriodController::class, 'close'])->name('periods.close');
             Route::post('periodos/{period}/reopen', [PeriodController::class, 'reopen'])->name('periods.reopen');
 
-            Route::get('configuracion/analisis', [AnalysisSettingController::class, 'edit'])->name('settings.analysis.edit');
-            Route::put('configuracion/analisis', [AnalysisSettingController::class, 'update'])->name('settings.analysis.update');
-            Route::resource('configuracion/plantillas-analisis', AnalysisTemplateController::class)
-                ->except(['show'])
-                ->names('analysis-templates')
-                ->parameters(['plantillas-analisis' => 'analysis_template']);
             Route::get('configuracion/pesos', [DashboardWeightController::class, 'edit'])->name('settings.weights.edit');
             Route::put('configuracion/pesos', [DashboardWeightController::class, 'update'])->name('settings.weights.update');
 
@@ -84,7 +76,6 @@ Route::middleware('auth')->group(function () {
             Route::get('madre/{indicator:code}/pdf', [ExportController::class, 'motherPdf'])->name('exports.mother.pdf');
 
             Route::get('dashboard', [OperationsDashboardController::class, 'index'])->name('dashboard.index');
-            Route::post('dashboard/generate-summary', [OperationsDashboardController::class, 'generateSummary'])->name('dashboard.generate-summary');
             Route::post('dashboard/save-summary', [OperationsDashboardController::class, 'saveSummary'])->name('dashboard.save-summary');
             Route::get('dashboard/zone/{zone}', [OperationsDashboardController::class, 'zoneSummary'])->name('dashboard.zone-summary');
             Route::get('dashboard/pdf', [OperationsDashboardController::class, 'exportPdf'])->name('dashboard.pdf');

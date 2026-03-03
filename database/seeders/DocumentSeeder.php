@@ -29,20 +29,6 @@ class DocumentSeeder extends Seeder
                 'indicator_code' => null,
                 'content' => 'Define la ponderacion por indicador y criterio de estado general.',
             ],
-            [
-                'slug' => 'metodologia-analisis',
-                'title' => 'Metodologia de Analisis',
-                'scope' => 'system',
-                'indicator_code' => null,
-                'content' => 'Describe modos de analisis (rules, local_ai, openai), configuracion activa y criterios de fallback.',
-            ],
-            [
-                'slug' => 'plantillas-analisis',
-                'title' => 'Plantillas de Analisis',
-                'scope' => 'system',
-                'indicator_code' => null,
-                'content' => 'Plantillas por indicador: plantilla_cumple, plantilla_no_cumple y sugerencias_accion.',
-            ],
         ];
 
         foreach ($documents as $item) {

@@ -2,7 +2,7 @@
     <div class="sticky top-0 z-20 bg-white border border-gray-200 rounded-md p-4 shadow-sm">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-                <x-input-label value="Año" />
+                <x-input-label value="Ano" />
                 <select wire:model.live="selectedYear" class="mt-1 block w-full rounded-md border-gray-300">
                     @foreach ($years as $year)
                         <option value="{{ $year }}">{{ $year }}</option>
@@ -40,15 +40,24 @@
             @endforeach
         </div>
     @endif
+    @if (session('status'))
+        <div class="rounded-md border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-700">
+            {{ session('status') }}
+        </div>
+    @endif
 
     <div class="bg-white border border-gray-200 rounded-md p-6 space-y-4">
         <h3 class="font-semibold text-lg">{{ $indicator->code }} - {{ $indicator->name }}</h3>
 
         @include($fieldsView)
 
+        <p class="text-xs text-gray-500">
+            Campos obligatorios: datos del indicador y analisis de resultados.
+        </p>
+
         <div>
-            <x-input-label value="Análisis de resultados (editable)" />
-            <textarea wire:model.live="analysisText" rows="5" class="mt-1 block w-full rounded-md border-gray-300" @disabled($isPeriodClosed)></textarea>
+            <x-input-label value="Analisis de resultados (editable)" />
+            <textarea wire:model.live.debounce.300ms="analysisText" rows="5" class="mt-1 block w-full rounded-md border-gray-300 bg-white text-gray-900" @disabled($isPeriodClosed)></textarea>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -57,7 +66,7 @@
                 <p class="font-semibold">{{ number_format($resultPercentage, 2) }}%</p>
             </div>
             <div class="rounded-md border border-gray-200 p-3">
-                <p class="text-xs text-gray-500">Semáforo</p>
+                <p class="text-xs text-gray-500">Semaforo</p>
                 <p class="font-semibold {{ $complies ? 'text-emerald-600' : 'text-red-600' }}">{{ $semaforo }}</p>
             </div>
             <div class="rounded-md border border-gray-200 p-3">
@@ -80,9 +89,6 @@
             <button type="button" wire:click="save" class="inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-gray-700 focus:bg-gray-700 focus:outline-none disabled:opacity-25" @disabled($isPeriodClosed)>
                 Guardar mes
             </button>
-            <button type="button" wire:click="generateSuggestion" class="rounded-md border border-indigo-300 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" @disabled($isPeriodClosed)>
-                Generar sugerencia
-            </button>
             <a href="{{ route('exports.zone.excel', ['indicator' => $indicator->code, 'year' => $selectedYear, 'month' => $selectedMonth, 'zone_id' => $selectedZoneId]) }}"
                class="rounded-md border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
                 Exportar Excel (Zona)
@@ -95,13 +101,13 @@
     </div>
 
     <div class="bg-white border border-gray-200 rounded-md p-6">
-        <h4 class="font-semibold mb-3">Tendencia últimos 3 meses (solo lectura)</h4>
+        <h4 class="font-semibold mb-3">Tendencia ultimos 3 meses (solo lectura)</h4>
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Periodo</th>
                     <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Resultado</th>
-                    <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Semáforo</th>
+                    <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Semaforo</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -125,16 +131,16 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <x-input-label value="Análisis" />
-                        <textarea wire:model.live="improvementAnalysis" rows="5" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
+                        <x-input-label value="Analisis" />
+                        <textarea wire:model.defer="improvementAnalysis" rows="5" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
                     </div>
                     <div>
-                        <x-input-label value="Acción tomada" />
-                        <textarea wire:model.live="improvementActionTaken" rows="5" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
+                        <x-input-label value="Accion tomada" />
+                        <textarea wire:model.defer="improvementActionTaken" rows="5" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
                     </div>
                     <div>
-                        <x-input-label value="Acción definida" />
-                        <textarea wire:model.live="improvementActionDefined" rows="5" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
+                        <x-input-label value="Accion definida" />
+                        <textarea wire:model.defer="improvementActionDefined" rows="5" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3">
@@ -143,7 +149,6 @@
                         type="button"
                         wire:click="saveImprovement"
                         class="inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-gray-700 focus:bg-gray-700 focus:outline-none disabled:opacity-25"
-                        @disabled(trim($improvementAnalysis) === '' || trim($improvementActionTaken) === '' || trim($improvementActionDefined) === '')
                     >
                         Guardar mejora
                     </button>

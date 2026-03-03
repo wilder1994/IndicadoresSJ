@@ -25,14 +25,6 @@
                         <button class="rounded-md bg-indigo-600 px-4 py-2 text-white text-sm">Aplicar</button>
                     </div>
                 </form>
-                <div class="mt-3 flex justify-end">
-                    <form method="POST" action="{{ route('admin.dashboard.generate-summary') }}">
-                        @csrf
-                        <input type="hidden" name="year" value="{{ $year }}">
-                        <input type="hidden" name="month" value="{{ $month }}">
-                        <button class="rounded-md border border-indigo-300 px-3 py-2 text-sm text-indigo-700">Generar resumen</button>
-                    </form>
-                </div>
                 @if (session('status'))
                     <p class="mt-3 text-sm text-emerald-700">{{ session('status') }}</p>
                 @endif
@@ -149,16 +141,6 @@
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <h3 class="font-semibold mb-3">Resumen Ejecutivo</h3>
-                @if ($summary?->generated_text)
-                    <div class="mb-3 rounded border border-indigo-200 bg-indigo-50 p-3">
-                        <p class="text-xs text-indigo-700 mb-2">Sugerencia generada</p>
-                        <pre class="text-xs whitespace-pre-wrap text-indigo-900">{{ $summary->generated_text }}</pre>
-                        <button type="button" id="useSuggestion" class="mt-2 rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700">
-                            Usar sugerencia en el resumen editable
-                        </button>
-                    </div>
-                @endif
-
                 <form method="POST" action="{{ route('admin.dashboard.save-summary') }}">
                     @csrf
                     <input type="hidden" name="year" value="{{ $year }}">
@@ -197,14 +179,6 @@
                 ]
             });
             window.addEventListener('resize', () => chart.resize());
-
-            const useSuggestionBtn = document.getElementById('useSuggestion');
-            const summaryText = document.getElementById('summaryText');
-            if (useSuggestionBtn && summaryText) {
-                useSuggestionBtn.addEventListener('click', function () {
-                    summaryText.value = @json($summary?->generated_text ?? '');
-                });
-            }
         })();
     </script>
 </x-app-layout>

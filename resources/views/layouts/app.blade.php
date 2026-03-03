@@ -40,6 +40,7 @@
                 {{ $slot }}
             </main>
         </div>
+        @stack('scripts')
         @livewireScripts
     </body>
 </html>

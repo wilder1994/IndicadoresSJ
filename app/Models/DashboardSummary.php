@@ -14,7 +14,6 @@ class DashboardSummary extends Model
         'year',
         'month',
         'summary_text',
-        'generated_text',
         'generated_by_user_id',
         'updated_by_user_id',
     ];

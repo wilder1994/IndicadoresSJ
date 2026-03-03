@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DashboardSummary;
 use App\Models\Zone;
-use App\Services\AnalysisSuggestionService;
 use App\Services\AuditLogService;
 use App\Services\Dashboard\OperationsDashboardService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -17,7 +16,6 @@ class OperationsDashboardController extends Controller
 {
     public function __construct(
         private readonly OperationsDashboardService $dashboardService,
-        private readonly AnalysisSuggestionService $analysisSuggestionService,
         private readonly AuditLogService $auditLogService
     ) {
     }
@@ -39,56 +37,6 @@ class OperationsDashboardController extends Controller
         );
 
         return view('admin.dashboard.index', compact('year', 'month', 'dashboard', 'summary'));
-    }
-
-    public function generateSummary(Request $request): RedirectResponse
-    {
-        $this->authorize('create', DashboardSummary::class);
-
-        $validated = $request->validate([
-            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
-            'month' => ['required', 'integer', 'min:1', 'max:12'],
-        ]);
-
-        $year = (int) $validated['year'];
-        $month = (int) $validated['month'];
-        $dashboard = $this->dashboardService->build($year, $month);
-
-        $context = [
-            'score' => $dashboard['global_score'],
-            'state' => $dashboard['global_state'],
-            'top_zone' => $dashboard['zone_ranking'][0]['zone']->name ?? 'N/A',
-            'critical_indicator' => $dashboard['critical_ranking'][0]['indicator']->code ?? 'N/A',
-            'year' => $year,
-            'month' => $month,
-        ];
-        $generatedText = $this->analysisSuggestionService->generateDashboardSummary($context);
-
-        $summary = DashboardSummary::query()->firstOrNew(['year' => $year, 'month' => $month]);
-        $before = $summary->exists ? $summary->toArray() : null;
-
-        if (! $summary->exists) {
-            $summary->generated_by_user_id = auth()->id();
-            $summary->summary_text = $generatedText;
-        }
-
-        $summary->generated_text = $generatedText;
-        $summary->updated_by_user_id = auth()->id();
-        $summary->save();
-
-        $this->auditLogService->logModelChange(
-            eventType: 'dashboard_summary',
-            action: 'generate',
-            model: $summary,
-            before: $before,
-            after: $summary->fresh()->toArray(),
-            reason: 'Generacion de resumen ejecutivo sugerido',
-            metadata: ['year' => $year, 'month' => $month]
-        );
-
-        return redirect()
-            ->route('admin.dashboard.index', ['year' => $year, 'month' => $month])
-            ->with('status', 'Sugerencia de resumen generada correctamente.');
     }
 
     public function saveSummary(Request $request): RedirectResponse

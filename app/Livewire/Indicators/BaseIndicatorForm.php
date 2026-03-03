@@ -7,7 +7,6 @@ use App\Models\Indicator;
 use App\Models\IndicatorCapture;
 use App\Models\Period;
 use App\Models\Zone;
-use App\Services\AnalysisSuggestionService;
 use App\Services\AuditLogService;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -45,7 +44,6 @@ abstract class BaseIndicatorForm extends Component
     public string $improvementActionDefined = '';
 
     protected AuditLogService $auditLogService;
-    protected AnalysisSuggestionService $analysisSuggestionService;
 
     protected string $fieldsView = '';
 
@@ -53,10 +51,9 @@ abstract class BaseIndicatorForm extends Component
     abstract protected function fieldRules(): array;
     abstract protected function calculateMetrics(array $form): array;
 
-    public function boot(AuditLogService $auditLogService, AnalysisSuggestionService $analysisSuggestionService): void
+    public function boot(AuditLogService $auditLogService): void
     {
         $this->auditLogService = $auditLogService;
-        $this->analysisSuggestionService = $analysisSuggestionService;
     }
 
     public function mount(Indicator $indicator): void
@@ -95,30 +92,6 @@ abstract class BaseIndicatorForm extends Component
     public function updatedForm(): void
     {
         $this->computeCurrentMetrics();
-    }
-
-    public function generateSuggestion(): void
-    {
-        $this->computeCurrentMetrics();
-
-        $context = [
-            'result_percentage' => $this->resultPercentage,
-            'complies' => $this->complies,
-            'trend_label' => $this->trendLabel(),
-            'history_label' => $this->historyLabel(),
-            'year' => $this->selectedYear,
-            'month' => $this->selectedMonth,
-            'month_name' => $this->months[$this->selectedMonth] ?? (string) $this->selectedMonth,
-            'previous_month_result' => $this->previousMonthResult(),
-            'zone_id' => $this->selectedZoneId,
-            'zone_code' => collect($this->zones)->firstWhere('id', $this->selectedZoneId)['code'] ?? null,
-        ];
-
-        $suggestion = $this->analysisSuggestionService->generate($this->indicator, $context);
-
-        $this->analysisText = trim($this->analysisText) === ''
-            ? $suggestion
-            : trim($this->analysisText)."\n\n".$suggestion;
     }
 
     public function save(): void
@@ -289,7 +262,7 @@ abstract class BaseIndicatorForm extends Component
             reason: 'Integracion de mejora al analisis mensual'
         );
 
-        $this->analysisText = $capture->analysis_text ?? '';
+        $this->analysisText = $analysisWithBlock;
         $this->showImprovementModal = false;
         session()->flash('status', 'Mejora guardada correctamente.');
     }
@@ -456,21 +429,24 @@ abstract class BaseIndicatorForm extends Component
 
     protected function buildImprovementBlock(): string
     {
-        return "### MEJORA_GLOBAL_START\n".
-            'Análisis: '.$this->improvementAnalysis."\n".
-            'Acción tomada: '.$this->improvementActionTaken."\n".
-            'Acción definida: '.$this->improvementActionDefined."\n".
-            "### MEJORA_GLOBAL_END";
+        return "Mejora global:\n".
+            'Analisis: '.$this->improvementAnalysis."\n".
+            'Accion tomada: '.$this->improvementActionTaken."\n".
+            'Accion definida: '.$this->improvementActionDefined;
     }
 
     protected function replaceOrAppendBlock(string $analysis, string $block): string
     {
-        $pattern = "/### MEJORA_GLOBAL_START(.*?)### MEJORA_GLOBAL_END/s";
-        if (preg_match($pattern, $analysis) === 1) {
-            return trim((string) preg_replace($pattern, $block, $analysis));
-        }
+        $clean = $this->stripImprovementBlock($analysis);
+        return $clean !== '' ? $clean."\n\n".$block : $block;
+    }
 
-        return trim($analysis)."\n\n".$block;
+    protected function stripImprovementBlock(string $analysis): string
+    {
+        $clean = (string) preg_replace('/\s*### MEJORA_GLOBAL_START.*?### MEJORA_GLOBAL_END\s*/s', "\n", $analysis);
+        $clean = (string) preg_replace('/\s*Mejora global:\nAnalisis:.*?\nAccion tomada:.*?\nAccion definida:.*?(?=\n{2,}|\z)/s', "\n", $clean);
+
+        return trim($clean);
     }
 
     protected function assertZoneAccess(): void
@@ -489,3 +465,4 @@ abstract class BaseIndicatorForm extends Component
         ]);
     }
 }
+

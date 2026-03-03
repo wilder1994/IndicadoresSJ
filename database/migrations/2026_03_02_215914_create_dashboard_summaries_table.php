@@ -16,7 +16,6 @@ return new class extends Migration
             $table->unsignedSmallInteger('year');
             $table->unsignedTinyInteger('month');
             $table->longText('summary_text')->nullable();
-            $table->longText('generated_text')->nullable();
             $table->foreignId('generated_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

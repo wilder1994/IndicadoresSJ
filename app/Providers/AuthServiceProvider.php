@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\AnalysisSetting;
-use App\Models\AnalysisTemplate;
 use App\Models\AuditLog;
 use App\Models\DashboardWeight;
 use App\Models\DashboardSummary;
@@ -11,8 +9,6 @@ use App\Models\Document;
 use App\Models\Period;
 use App\Models\User;
 use App\Models\Zone;
-use App\Policies\AnalysisSettingPolicy;
-use App\Policies\AnalysisTemplatePolicy;
 use App\Policies\AuditLogPolicy;
 use App\Policies\DashboardWeightPolicy;
 use App\Policies\DashboardSummaryPolicy;
@@ -34,8 +30,6 @@ class AuthServiceProvider extends ServiceProvider
         Zone::class => ZonePolicy::class,
         User::class => UserPolicy::class,
         Period::class => PeriodPolicy::class,
-        AnalysisSetting::class => AnalysisSettingPolicy::class,
-        AnalysisTemplate::class => AnalysisTemplatePolicy::class,
         DashboardWeight::class => DashboardWeightPolicy::class,
         DashboardSummary::class => DashboardSummaryPolicy::class,
         Document::class => DocumentPolicy::class,

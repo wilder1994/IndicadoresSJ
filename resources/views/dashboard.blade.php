@@ -40,7 +40,6 @@
                                 <a href="{{ route('admin.users.index') }}" class="rounded-md border border-gray-200 px-4 py-3 hover:border-indigo-500 hover:bg-indigo-50">Usuarios</a>
                                 <a href="{{ route('admin.zones.index') }}" class="rounded-md border border-gray-200 px-4 py-3 hover:border-indigo-500 hover:bg-indigo-50">Zonas</a>
                                 <a href="{{ route('admin.periods.index') }}" class="rounded-md border border-gray-200 px-4 py-3 hover:border-indigo-500 hover:bg-indigo-50">Periodos</a>
-                                <a href="{{ route('admin.settings.analysis.edit') }}" class="rounded-md border border-gray-200 px-4 py-3 hover:border-indigo-500 hover:bg-indigo-50">Config Analisis</a>
                                 <a href="{{ route('admin.settings.weights.edit') }}" class="rounded-md border border-gray-200 px-4 py-3 hover:border-indigo-500 hover:bg-indigo-50">Pesos Dashboard</a>
                                 <a href="{{ route('admin.documents.index') }}" class="rounded-md border border-gray-200 px-4 py-3 hover:border-indigo-500 hover:bg-indigo-50">Documentacion</a>
                                 <a href="{{ route('admin.mother.index') }}" class="rounded-md border border-gray-200 px-4 py-3 hover:border-indigo-500 hover:bg-indigo-50">Consolidado MADRE</a>
