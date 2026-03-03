@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\AnalysisSettingController;
+use App\Http\Controllers\Admin\AnalysisTemplateController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\DashboardWeightController;
 use App\Http\Controllers\Admin\OperationsDashboardController;
@@ -63,6 +64,10 @@ Route::middleware('auth')->group(function () {
 
             Route::get('configuracion/analisis', [AnalysisSettingController::class, 'edit'])->name('settings.analysis.edit');
             Route::put('configuracion/analisis', [AnalysisSettingController::class, 'update'])->name('settings.analysis.update');
+            Route::resource('configuracion/plantillas-analisis', AnalysisTemplateController::class)
+                ->except(['show'])
+                ->names('analysis-templates')
+                ->parameters(['plantillas-analisis' => 'analysis_template']);
             Route::get('configuracion/pesos', [DashboardWeightController::class, 'edit'])->name('settings.weights.edit');
             Route::put('configuracion/pesos', [DashboardWeightController::class, 'update'])->name('settings.weights.update');
 

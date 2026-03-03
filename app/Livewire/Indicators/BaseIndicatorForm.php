@@ -106,6 +106,12 @@ abstract class BaseIndicatorForm extends Component
             'complies' => $this->complies,
             'trend_label' => $this->trendLabel(),
             'history_label' => $this->historyLabel(),
+            'year' => $this->selectedYear,
+            'month' => $this->selectedMonth,
+            'month_name' => $this->months[$this->selectedMonth] ?? (string) $this->selectedMonth,
+            'previous_month_result' => $this->previousMonthResult(),
+            'zone_id' => $this->selectedZoneId,
+            'zone_code' => collect($this->zones)->firstWhere('id', $this->selectedZoneId)['code'] ?? null,
         ];
 
         $suggestion = $this->analysisSuggestionService->generate($this->indicator, $context);
@@ -300,9 +306,17 @@ abstract class BaseIndicatorForm extends Component
         $user = auth()->user();
 
         if ($user->isAdmin()) {
-            $this->zones = Zone::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code'])->toArray();
+            $this->zones = Zone::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['zones.id', 'zones.name', 'zones.code'])
+                ->toArray();
         } else {
-            $this->zones = $user->zones()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code'])->toArray();
+            $this->zones = $user->zones()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['zones.id', 'zones.name', 'zones.code'])
+                ->toArray();
         }
 
         if (! $this->selectedZoneId && ! empty($this->zones)) {
@@ -428,6 +442,16 @@ abstract class BaseIndicatorForm extends Component
         }
 
         return 'promedio '.round($vals->avg(), 2).' %';
+    }
+
+    protected function previousMonthResult(): ?float
+    {
+        if (count($this->trendRows) < 2) {
+            return null;
+        }
+
+        $previous = $this->trendRows[count($this->trendRows) - 2]['result'] ?? null;
+        return $previous !== null ? (float) $previous : null;
     }
 
     protected function buildImprovementBlock(): string

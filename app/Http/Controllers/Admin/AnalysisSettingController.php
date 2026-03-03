@@ -6,13 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AnalysisSettingUpdateRequest;
 use App\Models\AnalysisSetting;
 use App\Services\AuditLogService;
+use App\Services\DocumentationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AnalysisSettingController extends Controller
 {
-    public function __construct(private readonly AuditLogService $auditLogService)
-    {
+    public function __construct(
+        private readonly AuditLogService $auditLogService,
+        private readonly DocumentationService $documentationService
+    ) {
     }
 
     public function edit(): View
@@ -44,16 +48,20 @@ class AnalysisSettingController extends Controller
         unset($validated['reason']);
         $validated['updated_by_user_id'] = auth()->id();
 
-        $setting->update($validated);
+        DB::transaction(function () use ($setting, $validated, $before, $reason): void {
+            $setting->update($validated);
+            $version = $this->documentationService->upsertAnalysisMethodologyDocument($setting->fresh(), $reason);
 
-        $this->auditLogService->logModelChange(
-            eventType: 'analysis_settings',
-            action: 'update',
-            model: $setting,
-            before: $before,
-            after: $setting->fresh()->toArray(),
-            reason: $reason
-        );
+            $this->auditLogService->logModelChange(
+                eventType: 'analysis_settings',
+                action: 'update',
+                model: $setting,
+                before: $before,
+                after: $setting->fresh()->toArray(),
+                reason: $reason,
+                metadata: ['document_version_id' => $version->id]
+            );
+        });
 
         return back()->with('status', 'Configuracion de analisis actualizada.');
     }

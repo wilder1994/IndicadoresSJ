@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             IndicatorSeeder::class,
             DashboardWeightSeeder::class,
             AnalysisSettingSeeder::class,
+            AnalysisTemplateSeeder::class,
             DocumentSeeder::class,
         ]);
     }

@@ -59,6 +59,8 @@ class OperationsDashboardController extends Controller
             'state' => $dashboard['global_state'],
             'top_zone' => $dashboard['zone_ranking'][0]['zone']->name ?? 'N/A',
             'critical_indicator' => $dashboard['critical_ranking'][0]['indicator']->code ?? 'N/A',
+            'year' => $year,
+            'month' => $month,
         ];
         $generatedText = $this->analysisSuggestionService->generateDashboardSummary($context);
 

@@ -1,6 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Configuracion Analisis Inteligente</h2>
+        <div class="flex items-center justify-between gap-4">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Configuracion Analisis Inteligente</h2>
+            <a href="{{ route('admin.analysis-templates.index') }}" class="rounded-md border border-indigo-300 px-3 py-2 text-sm text-indigo-700">
+                Plantillas por indicador
+            </a>
+        </div>
     </x-slot>
 
     <div class="py-12">

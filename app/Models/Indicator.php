@@ -45,4 +45,9 @@ class Indicator extends Model
     {
         return $this->hasMany(Document::class);
     }
+
+    public function analysisTemplate(): HasOne
+    {
+        return $this->hasOne(AnalysisTemplate::class);
+    }
 }

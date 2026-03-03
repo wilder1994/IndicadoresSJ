@@ -77,7 +77,9 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <x-primary-button wire:click="save" @disabled($isPeriodClosed)>Guardar mes</x-primary-button>
+            <button type="button" wire:click="save" class="inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-gray-700 focus:bg-gray-700 focus:outline-none disabled:opacity-25" @disabled($isPeriodClosed)>
+                Guardar mes
+            </button>
             <button type="button" wire:click="generateSuggestion" class="rounded-md border border-indigo-300 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" @disabled($isPeriodClosed)>
                 Generar sugerencia
             </button>
@@ -137,12 +139,14 @@
                 </div>
                 <div class="flex justify-end gap-3">
                     <button type="button" wire:click="closeImprovementModal" class="rounded-md border border-gray-300 px-4 py-2 text-sm">Cancelar</button>
-                    <x-primary-button
+                    <button
+                        type="button"
                         wire:click="saveImprovement"
+                        class="inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-gray-700 focus:bg-gray-700 focus:outline-none disabled:opacity-25"
                         @disabled(trim($improvementAnalysis) === '' || trim($improvementActionTaken) === '' || trim($improvementActionDefined) === '')
                     >
                         Guardar mejora
-                    </x-primary-button>
+                    </button>
                 </div>
             </div>
         </div>
