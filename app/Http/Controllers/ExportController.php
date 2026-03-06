@@ -9,6 +9,7 @@ use App\Models\Period;
 use App\Models\Zone;
 use App\Services\AuditLogService;
 use App\Services\IndicatorMotherService;
+use App\Services\YearRangeService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -18,7 +19,8 @@ class ExportController extends Controller
 {
     public function __construct(
         private readonly IndicatorMotherService $motherService,
-        private readonly AuditLogService $auditLogService
+        private readonly AuditLogService $auditLogService,
+        private readonly YearRangeService $yearRangeService
     ) {
     }
 
@@ -90,7 +92,7 @@ class ExportController extends Controller
 
     private function buildZoneReport(Request $request, Indicator $indicator): array
     {
-        $year = (int) $request->integer('year', now()->year);
+        $year = $this->yearRangeService->normalize((int) $request->integer('year', now()->year));
         $month = (int) $request->integer('month', now()->month);
         $zoneId = (int) $request->integer('zone_id');
         $zone = Zone::query()->findOrFail($zoneId);
@@ -120,7 +122,7 @@ class ExportController extends Controller
 
     private function buildMotherReport(Request $request, Indicator $indicator): array
     {
-        $year = (int) $request->integer('year', now()->year);
+        $year = $this->yearRangeService->normalize((int) $request->integer('year', now()->year));
         $month = (int) $request->integer('month', now()->month);
         $monthly = $this->motherService->getMonthlyData($indicator, $year, $month);
 

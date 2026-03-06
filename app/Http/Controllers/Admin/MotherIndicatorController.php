@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Indicator;
 use App\Services\AuditLogService;
 use App\Services\IndicatorMotherService;
+use App\Services\YearRangeService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -13,7 +14,8 @@ class MotherIndicatorController extends Controller
 {
     public function __construct(
         private readonly IndicatorMotherService $motherService,
-        private readonly AuditLogService $auditLogService
+        private readonly AuditLogService $auditLogService,
+        private readonly YearRangeService $yearRangeService
     )
     {
     }
@@ -26,8 +28,9 @@ class MotherIndicatorController extends Controller
 
     public function show(Request $request, Indicator $indicator): View
     {
-        $year = (int) $request->integer('year', now()->year);
+        $year = $this->yearRangeService->normalize((int) $request->integer('year', now()->year));
         $month = (int) $request->integer('month', now()->month);
+        $years = $this->yearRangeService->years();
 
         $monthly = $this->motherService->getMonthlyData($indicator, $year, $month);
         $quarterly = $indicator->code === 'FT-OP-08'
@@ -41,6 +44,6 @@ class MotherIndicatorController extends Controller
             metadata: ['indicator' => $indicator->code, 'year' => $year, 'month' => $month]
         );
 
-        return view('admin.mother.show', compact('indicator', 'year', 'month', 'monthly', 'quarterly'));
+        return view('admin.mother.show', compact('indicator', 'year', 'month', 'years', 'monthly', 'quarterly'));
     }
 }

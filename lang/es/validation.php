@@ -33,6 +33,8 @@ return [
         'analysisText' => 'analisis de resultados',
         'form.total_personal' => 'total personal',
         'form.personal_capacitado' => 'personal capacitado',
+        'form.clasificacion_por_tipo.*.tipo' => 'tipo de siniestro',
+        'form.clasificacion_por_tipo.*.cantidad' => 'cantidad de siniestros',
         'email' => 'correo electronico',
         'password' => 'contrasena',
         'name' => 'nombre',

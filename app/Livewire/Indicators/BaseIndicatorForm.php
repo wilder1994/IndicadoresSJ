@@ -8,6 +8,7 @@ use App\Models\IndicatorCapture;
 use App\Models\Period;
 use App\Models\Zone;
 use App\Services\AuditLogService;
+use App\Services\YearRangeService;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -25,6 +26,8 @@ abstract class BaseIndicatorForm extends Component
     public array $form = [];
     public array $trendRows = [];
     public array $metricErrors = [];
+    public array $sheetRows = [];
+    public array $chartPayload = [];
 
     public ?int $periodId = null;
     public ?int $captureId = null;
@@ -42,6 +45,9 @@ abstract class BaseIndicatorForm extends Component
     public string $improvementAnalysis = '';
     public string $improvementActionTaken = '';
     public string $improvementActionDefined = '';
+    public string $improvementRequired = '';
+    public string $sheetDenominatorLabel = 'TOTAL BASE';
+    public string $sheetNumeratorLabel = 'TOTAL CUMPLIDO';
 
     protected AuditLogService $auditLogService;
 
@@ -61,16 +67,28 @@ abstract class BaseIndicatorForm extends Component
         $this->indicator = $indicator;
         $this->form = $this->defaultForm();
         $now = now();
-        $this->selectedYear = (int) $now->year;
-        $this->selectedMonth = (int) $now->month;
-        $this->years = range((int) $now->year - 2, (int) $now->year + 1);
+        $yearRange = app(YearRangeService::class);
+        $this->years = $yearRange->years();
         $this->months = [
             1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
             5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
             9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
         ];
+        $requestedYear = (int) request()->integer('year', (int) $now->year);
+        $requestedMonth = (int) request()->integer('month', (int) $now->month);
+        $requestedZoneId = (int) request()->integer('zone_id', 0);
+
+        $this->selectedYear = $yearRange->normalize($requestedYear);
+        $this->selectedMonth = array_key_exists($requestedMonth, $this->months) ? $requestedMonth : (int) $now->month;
 
         $this->loadZones();
+        if ($requestedZoneId > 0) {
+            $allowedZoneIds = array_map(static fn (array $zone): int => (int) $zone['id'], $this->zones);
+            if (in_array($requestedZoneId, $allowedZoneIds, true)) {
+                $this->selectedZoneId = $requestedZoneId;
+            }
+        }
+        $this->configureSheetLabels();
         $this->loadContext();
     }
 
@@ -99,6 +117,7 @@ abstract class BaseIndicatorForm extends Component
         $this->ensureContext();
         $this->validate($this->fieldRules());
         $this->computeCurrentMetrics();
+        $this->validateImprovementFields();
 
         if ($this->isPeriodClosed) {
             throw ValidationException::withMessages(['period' => 'Periodo cerrado']);
@@ -108,6 +127,7 @@ abstract class BaseIndicatorForm extends Component
             throw ValidationException::withMessages(['form' => implode(' | ', $this->metricErrors)]);
         }
 
+        $this->analysisText = $this->buildImprovementBlock();
         $period = Period::query()->findOrFail($this->periodId);
 
         $existing = IndicatorCapture::query()->where([
@@ -144,6 +164,7 @@ abstract class BaseIndicatorForm extends Component
             );
 
             $this->captureId = $existing->id;
+            $captureModel = $existing;
         } else {
             $payload['created_by_user_id'] = auth()->id();
             $capture = IndicatorCapture::query()->create($payload);
@@ -158,27 +179,26 @@ abstract class BaseIndicatorForm extends Component
             );
 
             $this->captureId = $capture->id;
+            $captureModel = $capture;
         }
 
+        $this->persistImprovement($captureModel);
         session()->flash('status', 'Captura guardada correctamente para el mes seleccionado.');
+        $this->showImprovementModal = false;
         $this->loadContext();
     }
 
     public function openImprovementModal(): void
     {
         $this->ensureContext();
-
-        if (! $this->captureId) {
-            $this->addError('improvement', 'Primero guarda la captura del mes.');
-            return;
+        if ($this->captureId) {
+            $improvement = Improvement::query()->where('indicator_capture_id', $this->captureId)->first();
+            $this->improvementId = $improvement?->id;
+            $this->improvementAnalysis = $improvement?->analysis ?? $this->improvementAnalysis;
+            $this->improvementActionTaken = $improvement?->action_taken ?? $this->improvementActionTaken;
+            $this->improvementActionDefined = $improvement?->action_defined ?? $this->improvementActionDefined;
+            $this->improvementRequired = $improvement?->improvement_required ?? $this->improvementRequired;
         }
-
-        $improvement = Improvement::query()->where('indicator_capture_id', $this->captureId)->first();
-
-        $this->improvementId = $improvement?->id;
-        $this->improvementAnalysis = $improvement?->analysis ?? '';
-        $this->improvementActionTaken = $improvement?->action_taken ?? '';
-        $this->improvementActionDefined = $improvement?->action_defined ?? '';
         $this->showImprovementModal = true;
     }
 
@@ -195,76 +215,32 @@ abstract class BaseIndicatorForm extends Component
             throw ValidationException::withMessages(['period' => 'Periodo cerrado']);
         }
 
-        if (! $this->captureId) {
-            throw ValidationException::withMessages(['improvement' => 'Debes guardar la captura antes de registrar mejora.']);
-        }
+        $this->computeCurrentMetrics();
+        $this->validateImprovementFields();
+        $this->analysisText = $this->buildImprovementBlock();
 
-        $this->validate([
-            'improvementAnalysis' => ['required', 'string'],
-            'improvementActionTaken' => ['required', 'string'],
-            'improvementActionDefined' => ['required', 'string'],
-        ]);
-
-        $capture = IndicatorCapture::query()->findOrFail($this->captureId);
-        $beforeCapture = $capture->toArray();
-        $block = $this->buildImprovementBlock();
-        $analysisWithBlock = $this->replaceOrAppendBlock($capture->analysis_text ?? '', $block);
-
-        $existing = Improvement::query()->where('indicator_capture_id', $capture->id)->first();
-        $payload = [
-            'indicator_capture_id' => $capture->id,
-            'indicator_id' => $this->indicator->id,
-            'zone_id' => $this->selectedZoneId,
-            'period_id' => $this->periodId,
-            'analysis' => $this->improvementAnalysis,
-            'action_taken' => $this->improvementActionTaken,
-            'action_defined' => $this->improvementActionDefined,
-            'integrated_analysis_block' => $block,
-            'created_by_user_id' => auth()->id(),
-        ];
-
-        if ($existing) {
-            $beforeImprovement = $existing->toArray();
-            $existing->update($payload);
+        if ($this->captureId) {
+            $capture = IndicatorCapture::query()->findOrFail($this->captureId);
+            $beforeCapture = $capture->toArray();
+            $capture->update([
+                'analysis_text' => $this->analysisText,
+                'updated_by_user_id' => auth()->id(),
+            ]);
             $this->auditLogService->logModelChange(
-                eventType: 'improvement',
+                eventType: 'indicator_capture',
                 action: 'update',
-                model: $existing,
-                before: $beforeImprovement,
-                after: $existing->fresh()->toArray(),
-                reason: 'Actualizacion mejora mensual'
+                model: $capture,
+                before: $beforeCapture,
+                after: $capture->fresh()->toArray(),
+                reason: 'Actualizacion analisis mensual desde modal'
             );
-            $this->improvementId = $existing->id;
+            $this->persistImprovement($capture);
+            session()->flash('status', 'Analisis guardado correctamente.');
         } else {
-            $improvement = Improvement::query()->create($payload);
-            $this->auditLogService->logModelChange(
-                eventType: 'improvement',
-                action: 'create',
-                model: $improvement,
-                before: null,
-                after: $improvement->toArray(),
-                reason: 'Creacion mejora mensual'
-            );
-            $this->improvementId = $improvement->id;
+            session()->flash('status', 'Analisis registrado en memoria. Ahora pulsa Guardar mes.');
         }
 
-        $capture->update([
-            'analysis_text' => $analysisWithBlock,
-            'updated_by_user_id' => auth()->id(),
-        ]);
-
-        $this->auditLogService->logModelChange(
-            eventType: 'indicator_capture',
-            action: 'update',
-            model: $capture,
-            before: $beforeCapture,
-            after: $capture->fresh()->toArray(),
-            reason: 'Integracion de mejora al analisis mensual'
-        );
-
-        $this->analysisText = $analysisWithBlock;
         $this->showImprovementModal = false;
-        session()->flash('status', 'Mejora guardada correctamente.');
     }
 
     protected function ensureContext(): void
@@ -324,15 +300,24 @@ abstract class BaseIndicatorForm extends Component
             $this->analysisText = $capture->analysis_text ?? '';
             $improvement = Improvement::query()->where('indicator_capture_id', $capture->id)->first();
             $this->improvementId = $improvement?->id;
+            $this->improvementAnalysis = $improvement?->analysis ?? '';
+            $this->improvementActionTaken = $improvement?->action_taken ?? '';
+            $this->improvementActionDefined = $improvement?->action_defined ?? '';
+            $this->improvementRequired = $improvement?->improvement_required ?? '';
         } else {
             $this->captureId = null;
             $this->improvementId = null;
             $this->form = $this->defaultForm();
             $this->analysisText = '';
+            $this->improvementAnalysis = '';
+            $this->improvementActionTaken = '';
+            $this->improvementActionDefined = '';
+            $this->improvementRequired = '';
         }
 
         $this->loadTrend();
         $this->computeCurrentMetrics();
+        $this->buildSheetData();
     }
 
     protected function computeCurrentMetrics(): void
@@ -417,6 +402,98 @@ abstract class BaseIndicatorForm extends Component
         return 'promedio '.round($vals->avg(), 2).' %';
     }
 
+    protected function configureSheetLabels(): void
+    {
+        $fields = collect($this->indicator->required_fields ?? [])
+            ->filter(fn ($field) => $field !== 'analisis_texto')
+            ->values();
+
+        $this->sheetDenominatorLabel = $this->humanizeFieldName((string) ($fields->get(0) ?? 'total_base'));
+        $this->sheetNumeratorLabel = $this->humanizeFieldName((string) ($fields->get(1) ?? 'total_cumplido'));
+    }
+
+    protected function humanizeFieldName(string $field): string
+    {
+        return strtoupper(trim(str_replace('_', ' ', $field)));
+    }
+
+    protected function buildSheetData(): void
+    {
+        $monthNames = [
+            1 => 'ENE', 2 => 'FEB', 3 => 'MAR', 4 => 'ABR',
+            5 => 'MAY', 6 => 'JUN', 7 => 'JUL', 8 => 'AGO',
+            9 => 'SEP', 10 => 'OCT', 11 => 'NOV', 12 => 'DIC',
+        ];
+
+        if (! $this->selectedZoneId) {
+            $this->sheetRows = [];
+            $this->chartPayload = [];
+            return;
+        }
+
+        $periods = Period::query()
+            ->where('year', $this->selectedYear)
+            ->whereBetween('month', [1, 12])
+            ->get(['id', 'month'])
+            ->keyBy('month');
+
+        $captures = IndicatorCapture::query()
+            ->where('indicator_id', $this->indicator->id)
+            ->where('zone_id', $this->selectedZoneId)
+            ->whereIn('period_id', $periods->pluck('id'))
+            ->get(['id', 'period_id', 'numerator', 'denominator', 'result_percentage', 'complies', 'analysis_text'])
+            ->keyBy(function (IndicatorCapture $capture) use ($periods): int {
+                $period = $periods->firstWhere('id', $capture->period_id);
+                return (int) ($period?->month ?? 0);
+            });
+
+        $rows = [];
+        $denominators = [];
+        $numerators = [];
+        $percentages = [];
+
+        for ($m = 1; $m <= 12; $m++) {
+            $capture = $captures->get($m);
+            $analysis = trim((string) ($capture?->analysis_text ?? ''));
+            $analysis = preg_replace('/\n{3,}/', "\n\n", $analysis) ?? $analysis;
+
+            $denominator = (float) ($capture?->denominator ?? 0);
+            $numerator = (float) ($capture?->numerator ?? 0);
+            $result = (float) ($capture?->result_percentage ?? 0);
+
+            $rows[] = [
+                'month_number' => $m,
+                'month' => $monthNames[$m],
+                'denominator' => $denominator,
+                'numerator' => $numerator,
+                'result_percentage' => $result,
+                'analysis' => $analysis,
+                'has_capture' => (bool) $capture,
+                'complies' => (bool) ($capture?->complies ?? false),
+                'improvement' => $capture ? ! (bool) ($capture->complies ?? false) : false,
+            ];
+
+            $denominators[] = $denominator;
+            $numerators[] = $numerator;
+            $percentages[] = $result;
+        }
+
+        $this->sheetRows = $rows;
+        $this->chartPayload = [
+            'months' => array_values($monthNames),
+            'denominator' => $denominators,
+            'numerator' => $numerators,
+            'result_percentage' => $percentages,
+            'meta' => array_fill(0, 12, (float) $this->indicator->target_value),
+            'denominator_label' => $this->sheetDenominatorLabel,
+            'numerator_label' => $this->sheetNumeratorLabel,
+            'title' => 'Nivel de cumplimiento '.$this->indicator->name.' '.$this->selectedYear,
+            'year' => $this->selectedYear,
+        ];
+
+        $this->dispatch('ft-op-01-chart-refresh', payload: $this->chartPayload);
+    }
+
     protected function previousMonthResult(): ?float
     {
         if (count($this->trendRows) < 2) {
@@ -429,24 +506,74 @@ abstract class BaseIndicatorForm extends Component
 
     protected function buildImprovementBlock(): string
     {
-        return "Mejora global:\n".
+        $block = "Analisis de resultados:\n".
             'Analisis: '.$this->improvementAnalysis."\n".
             'Accion tomada: '.$this->improvementActionTaken."\n".
             'Accion definida: '.$this->improvementActionDefined;
+
+        if (! $this->complies && trim($this->improvementRequired) !== '') {
+            $block .= "\n".'Debe agregar mejora: '.$this->improvementRequired;
+        }
+
+        return $block;
     }
 
-    protected function replaceOrAppendBlock(string $analysis, string $block): string
+    protected function validateImprovementFields(): void
     {
-        $clean = $this->stripImprovementBlock($analysis);
-        return $clean !== '' ? $clean."\n\n".$block : $block;
+        $rules = [
+            'improvementAnalysis' => ['required', 'string'],
+            'improvementActionTaken' => ['required', 'string'],
+            'improvementActionDefined' => ['required', 'string'],
+        ];
+
+        if (! $this->complies) {
+            $rules['improvementRequired'] = ['required', 'string'];
+        }
+
+        $this->validate($rules);
     }
 
-    protected function stripImprovementBlock(string $analysis): string
+    protected function persistImprovement(IndicatorCapture $capture): void
     {
-        $clean = (string) preg_replace('/\s*### MEJORA_GLOBAL_START.*?### MEJORA_GLOBAL_END\s*/s', "\n", $analysis);
-        $clean = (string) preg_replace('/\s*Mejora global:\nAnalisis:.*?\nAccion tomada:.*?\nAccion definida:.*?(?=\n{2,}|\z)/s', "\n", $clean);
+        $existing = Improvement::query()->where('indicator_capture_id', $capture->id)->first();
+        $payload = [
+            'indicator_capture_id' => $capture->id,
+            'indicator_id' => $this->indicator->id,
+            'zone_id' => $this->selectedZoneId,
+            'period_id' => $this->periodId,
+            'analysis' => $this->improvementAnalysis,
+            'action_taken' => $this->improvementActionTaken,
+            'action_defined' => $this->improvementActionDefined,
+            'improvement_required' => $this->complies ? null : $this->improvementRequired,
+            'integrated_analysis_block' => $this->analysisText,
+            'created_by_user_id' => auth()->id(),
+        ];
 
-        return trim($clean);
+        if ($existing) {
+            $beforeImprovement = $existing->toArray();
+            $existing->update($payload);
+            $this->auditLogService->logModelChange(
+                eventType: 'improvement',
+                action: 'update',
+                model: $existing,
+                before: $beforeImprovement,
+                after: $existing->fresh()->toArray(),
+                reason: 'Actualizacion analisis mensual'
+            );
+            $this->improvementId = $existing->id;
+            return;
+        }
+
+        $improvement = Improvement::query()->create($payload);
+        $this->auditLogService->logModelChange(
+            eventType: 'improvement',
+            action: 'create',
+            model: $improvement,
+            before: null,
+            after: $improvement->toArray(),
+            reason: 'Creacion analisis mensual'
+        );
+        $this->improvementId = $improvement->id;
     }
 
     protected function assertZoneAccess(): void
@@ -460,7 +587,11 @@ abstract class BaseIndicatorForm extends Component
 
     public function render()
     {
-        return view('livewire.indicators.base-form', [
+        $view = $this->indicator->code === 'FT-OP-03'
+            ? 'livewire.indicators.ft-op-03-form'
+            : 'livewire.indicators.ft-op-01-form';
+
+        return view($view, [
             'fieldsView' => $this->fieldsView,
         ]);
     }

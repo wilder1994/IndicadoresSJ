@@ -16,7 +16,6 @@ class FtOp08Form extends BaseIndicatorForm
         return [
             'form.inventarios_programados' => ['required', 'numeric', 'min:0.01'],
             'form.inventarios_realizados' => ['required', 'numeric', 'min:0'],
-            'analysisText' => ['required', 'string'],
         ];
     }
 

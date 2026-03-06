@@ -15,7 +15,11 @@
                 <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
                     <div>
                         <x-input-label value="Ano" />
-                        <x-text-input type="number" name="year" class="mt-1 block w-full" value="{{ $year }}" />
+                        <select name="year" class="mt-1 block w-full rounded-md border-gray-300">
+                            @foreach ($years as $yearOption)
+                                <option value="{{ $yearOption }}" @selected($year === (int) $yearOption)>{{ $yearOption }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <x-input-label value="Mes" />

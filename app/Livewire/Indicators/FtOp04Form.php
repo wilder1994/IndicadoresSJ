@@ -16,7 +16,6 @@ class FtOp04Form extends BaseIndicatorForm
         return [
             'form.supervisiones_programadas' => ['required', 'numeric', 'min:0.01'],
             'form.supervisiones_realizadas' => ['required', 'numeric', 'min:0'],
-            'analysisText' => ['required', 'string'],
         ];
     }
 

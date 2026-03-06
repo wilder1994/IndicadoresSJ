@@ -16,7 +16,6 @@ class FtOp07Form extends BaseIndicatorForm
         return [
             'form.analisis_programados' => ['required', 'numeric', 'min:0.01'],
             'form.analisis_realizados' => ['required', 'numeric', 'min:0'],
-            'analysisText' => ['required', 'string'],
         ];
     }
 

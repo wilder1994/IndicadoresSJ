@@ -16,7 +16,6 @@ class FtOp02Form extends BaseIndicatorForm
         return [
             'form.total_servicios' => ['required', 'numeric', 'min:0.01'],
             'form.no_conformes' => ['required', 'numeric', 'min:0'],
-            'analysisText' => ['required', 'string'],
         ];
     }
 

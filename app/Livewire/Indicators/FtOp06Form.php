@@ -16,7 +16,6 @@ class FtOp06Form extends BaseIndicatorForm
         return [
             'form.total_clientes_cadena' => ['required', 'numeric', 'min:0.01'],
             'form.eventos_indeseables' => ['required', 'numeric', 'min:0'],
-            'analysisText' => ['required', 'string'],
         ];
     }
 

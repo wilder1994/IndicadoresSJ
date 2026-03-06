@@ -4,40 +4,6 @@
         .ftop01-sheet .t-head { font-size: 13px; font-weight: 700; line-height: 1.1; }
         .ftop01-sheet .t-body { font-size: 13px; font-weight: 400; line-height: 1.1; }
     </style>
-    <div class="sticky top-0 z-20 bg-white border border-gray-200 rounded-md p-4 shadow-sm">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <x-input-label value="Ano" />
-                <select wire:model.live="selectedYear" class="mt-1 block w-full rounded-md border-gray-300">
-                    @foreach ($years as $year)
-                        <option value="{{ $year }}">{{ $year }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <x-input-label value="Mes" />
-                <select wire:model.live="selectedMonth" class="mt-1 block w-full rounded-md border-gray-300">
-                    @foreach ($months as $monthNumber => $monthName)
-                        <option value="{{ $monthNumber }}">{{ $monthName }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <x-input-label value="Zona" />
-                <select wire:model.live="selectedZoneId" class="mt-1 block w-full rounded-md border-gray-300">
-                    @foreach ($zones as $zone)
-                        <option value="{{ $zone['id'] }}">{{ $zone['code'] }} - {{ $zone['name'] }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex items-end">
-                <div class="w-full rounded-md border px-3 py-2 text-sm {{ $isPeriodClosed ? 'border-red-300 bg-red-50 text-red-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' }}">
-                    {{ $isPeriodClosed ? 'Periodo cerrado' : 'Periodo abierto' }}
-                </div>
-            </div>
-        </div>
-    </div>
-
     @if ($errors->any())
         <div class="rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700">
             @foreach ($errors->all() as $error)
@@ -51,6 +17,60 @@
             {{ session('status') }}
         </div>
     @endif
+
+    <div class="bg-white border border-gray-200 rounded-md p-6 space-y-4">
+        <h3 class="font-semibold text-lg">{{ $indicator->code }} - {{ $indicator->name }}</h3>
+        @if ($indicator->code !== 'FT-OP-03')
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div class="md:col-span-2">
+                    @include($fieldsView)
+                </div>
+                <div class="flex items-end">
+                    <button type="button" wire:click="openImprovementModal" class="w-full h-[42px] inline-flex items-center justify-center rounded-md border border-indigo-300 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" @disabled($isPeriodClosed)>
+                        Abrir modal de analisis
+                    </button>
+                </div>
+            </div>
+        @else
+            @include($fieldsView)
+            <div class="flex justify-end">
+                <button type="button" wire:click="openImprovementModal" class="h-[42px] inline-flex items-center justify-center rounded-md border border-indigo-300 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" @disabled($isPeriodClosed)>
+                    Abrir modal de analisis
+                </button>
+            </div>
+        @endif
+        <p class="text-xs text-gray-500">Campos obligatorios: datos del indicador y analisis en modal.</p>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="rounded-md border border-gray-200 p-3">
+                <p class="text-xs text-gray-500">Resultado %</p>
+                <p class="font-semibold">{{ number_format($resultPercentage, 2) }}%</p>
+            </div>
+            <div class="rounded-md border border-gray-200 p-3">
+                <p class="text-xs text-gray-500">Semaforo</p>
+                <p class="font-semibold {{ $complies ? 'text-emerald-600' : 'text-red-600' }}">{{ $semaforo }}</p>
+            </div>
+            <div class="rounded-md border border-gray-200 p-3">
+                <p class="text-xs text-gray-500">Cumple</p>
+                <p class="font-semibold">{{ $complies ? 'SI' : 'NO' }}</p>
+            </div>
+            <div class="rounded-md border border-gray-200 p-3">
+                <p class="text-xs text-gray-500">Mejora</p>
+                <p class="font-semibold">
+                    <button type="button" wire:click="openImprovementModal" class="text-indigo-600 underline" @disabled($isPeriodClosed)>
+                        {{ $improvementId ? 'SI' : 'NO' }}
+                    </button>
+                </p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('exports.zone.excel', ['indicator' => $indicator->code, 'year' => $selectedYear, 'month' => $selectedMonth, 'zone_id' => $selectedZoneId]) }}" class="rounded-md border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+                Exportar Excel (Zona)
+            </a>
+            <a href="{{ route('exports.zone.pdf', ['indicator' => $indicator->code, 'year' => $selectedYear, 'month' => $selectedMonth, 'zone_id' => $selectedZoneId]) }}" class="rounded-md border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50">
+                Exportar PDF (Zona)
+            </a>
+        </div>
+    </div>
 
     <div class="bg-white border border-gray-300 rounded-md p-4 overflow-x-auto">
         <table class="border-collapse table-fixed text-[13px] text-black" style="min-width: 888px;">
@@ -90,7 +110,7 @@
                 <td colspan="4" class="border border-gray-600 text-center t-head">PROCESO</td>
             </tr>
             <tr style="height:26px;">
-                <td colspan="8" class="border border-gray-600 px-2 t-body">Medir el grado de cumplimiento de las personas operativas capacitadas</td>
+                <td colspan="8" class="border border-gray-600 px-2 t-body">Medir el grado de cumplimiento del indicador.</td>
                 <td colspan="4" class="border border-gray-600 text-center t-body">Gestion Operativa</td>
             </tr>
             <tr style="height:26px;" class="bg-gray-100 text-center">
@@ -101,17 +121,17 @@
                 <td colspan="4" class="border border-gray-600 t-head">INSUMOS PARA LA MEDICION</td>
             </tr>
             <tr style="height:26px;" class="text-center">
-                <td colspan="2" class="border border-gray-600 t-body">Porcentaje</td>
+                <td colspan="2" class="border border-gray-600 t-body">{{ ucfirst((string) ($indicator->unit ?? 'Porcentaje')) }}</td>
                 <td class="border border-gray-600 t-body">{{ number_format((float) $indicator->target_value, 0) }}%</td>
                 <td colspan="3" class="border border-gray-600 t-body">{{ ucfirst($indicator->frequency ?? 'Mensual') }}</td>
-                <td colspan="2" class="border border-gray-600 t-body">Creciente</td>
-                <td colspan="4" class="border border-gray-600 t-body">Base de datos personal operativo</td>
+                <td colspan="2" class="border border-gray-600 t-body">{{ ($indicator->target_operator ?? '>=') === '<=' ? 'Decreciente' : 'Creciente' }}</td>
+                <td colspan="4" class="border border-gray-600 t-body">Base de datos del indicador</td>
             </tr>
             <tr style="height:26px;" class="bg-gray-100">
                 <td colspan="12" class="border border-gray-600 text-center t-head">FORMULA</td>
             </tr>
             <tr style="height:26px;">
-                <td colspan="12" class="border border-gray-600 text-center t-body">(N de personal capacitado / N Total de personal operativo)</td>
+                <td colspan="12" class="border border-gray-600 text-center t-body">({{ $indicator->formula_description ?? 'N/A' }})</td>
             </tr>
             <tr style="height:26px;" class="bg-gray-100">
                 <td colspan="12" class="border border-gray-600 text-center t-head">RESPONSABILIDADES</td>
@@ -138,23 +158,23 @@
                 <td colspan="12" class="border border-gray-600 t-head">{{ $selectedYear }}</td>
             </tr>
             <tr style="height:26px;" class="bg-blue-100 text-center">
-                <td colspan="12" class="border border-gray-600 t-head">TOTAL PERSONAL OPERATIVO</td>
+                <td colspan="12" class="border border-gray-600 t-head">{{ $sheetDenominatorLabel }}</td>
             </tr>
             <tr style="height:26px;" class="text-center">
                 @foreach ($sheetRows as $row)
-                    <td class="border border-gray-600 t-body">{{ rtrim(rtrim(number_format($row['total_personal'], 2, '.', ''), '0'), '.') }}</td>
+                    <td class="border border-gray-600 t-body">{{ rtrim(rtrim(number_format($row['denominator'], 2, '.', ''), '0'), '.') }}</td>
                 @endforeach
             </tr>
             <tr style="height:26px;" class="bg-blue-100 text-center">
-                <td colspan="12" class="border border-gray-600 t-head">PERSONAL OPERATIVO CAPACITADO POR ZONA</td>
+                <td colspan="12" class="border border-gray-600 t-head">{{ $sheetNumeratorLabel }}</td>
             </tr>
             <tr style="height:26px;" class="text-center">
                 @foreach ($sheetRows as $row)
-                    <td class="border border-gray-600 t-body">{{ rtrim(rtrim(number_format($row['personal_capacitado'], 2, '.', ''), '0'), '.') }}</td>
+                    <td class="border border-gray-600 t-body">{{ rtrim(rtrim(number_format($row['numerator'], 2, '.', ''), '0'), '.') }}</td>
                 @endforeach
             </tr>
             <tr style="height:26px;" class="bg-blue-100 text-center">
-                <td colspan="12" class="border border-gray-600 t-head">NIVEL DE CUMPLIMIENTO PERSONAL OPERATIVO CAPACITADO</td>
+                <td colspan="12" class="border border-gray-600 t-head">NIVEL DE CUMPLIMIENTO {{ strtoupper($indicator->name) }}</td>
             </tr>
             <tr style="height:26px;" class="text-center">
                 @foreach ($sheetRows as $row)
@@ -165,7 +185,7 @@
             </tr>
             <tr style="height:26px;" class="text-center">
                 @for ($i = 0; $i < 12; $i++)
-                    <td class="border border-gray-600 t-head">>= {{ number_format((float) $indicator->target_value, 0) }}%</td>
+                    <td class="border border-gray-600 t-head">{{ $indicator->target_operator === '<=' ? '<=' : '>=' }} {{ number_format((float) $indicator->target_value, 0) }}%</td>
                 @endfor
             </tr>
         </table>
@@ -193,74 +213,21 @@
                     <td class="border border-gray-600 bg-gray-100 t-head text-center [writing-mode:vertical-rl] rotate-180">{{ $selectedYear }}</td>
                     <td class="border border-gray-600 bg-gray-100 t-head text-center">{{ $row['month'] }}</td>
                     <td class="border border-gray-600 px-2 align-top t-body">{{ $row['analysis'] }}</td>
-                    <td class="border border-gray-600 text-center t-head">{{ $row['complies'] ? 'SI' : 'NO' }}</td>
-                    <td class="border border-gray-600 text-center t-head">
-                        @if ($row['complies'])
-                            NO
-                        @elseif ($selectedMonth === $row['month_number'])
-                            <button type="button" wire:click="openImprovementModal" class="text-indigo-700 underline">SI</button>
-                        @else
-                            {{ $row['improvement'] ? 'SI' : 'NO' }}
-                        @endif
-                    </td>
+                    <td class="border border-gray-600 text-center t-head">{{ $row['has_capture'] ? ($row['complies'] ? 'SI' : 'NO') : '' }}</td>
+                    <td class="border border-gray-600 text-center t-head">{{ $row['has_capture'] ? ($row['improvement'] ? 'SI' : 'NO') : '' }}</td>
                 </tr>
             @endforeach
         </table>
-    </div>
-
-    <div class="bg-white border border-gray-200 rounded-md p-6 space-y-4">
-        <h3 class="font-semibold text-lg">{{ $indicator->code }} - {{ $indicator->name }}</h3>
-        @include($fieldsView)
-        <p class="text-xs text-gray-500">Campos obligatorios: datos del indicador y analisis de resultados.</p>
-        <div>
-            <x-input-label value="Analisis de resultados (editable)" />
-            <textarea wire:model.live.debounce.300ms="analysisText" rows="5" class="mt-1 block w-full rounded-md border-gray-300 bg-white text-gray-900" @disabled($isPeriodClosed)></textarea>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div class="rounded-md border border-gray-200 p-3">
-                <p class="text-xs text-gray-500">Resultado %</p>
-                <p class="font-semibold">{{ number_format($resultPercentage, 2) }}%</p>
-            </div>
-            <div class="rounded-md border border-gray-200 p-3">
-                <p class="text-xs text-gray-500">Semaforo</p>
-                <p class="font-semibold {{ $complies ? 'text-emerald-600' : 'text-red-600' }}">{{ $semaforo }}</p>
-            </div>
-            <div class="rounded-md border border-gray-200 p-3">
-                <p class="text-xs text-gray-500">Cumple</p>
-                <p class="font-semibold">{{ $complies ? 'SI' : 'NO' }}</p>
-            </div>
-            <div class="rounded-md border border-gray-200 p-3">
-                <p class="text-xs text-gray-500">Mejora</p>
-                <p class="font-semibold">
-                    @if (! $complies)
-                        <button type="button" wire:click="openImprovementModal" class="text-indigo-600 underline">SI</button>
-                    @else
-                        NO
-                    @endif
-                </p>
-            </div>
-        </div>
-        <div class="flex flex-wrap gap-3">
-            <button type="button" wire:click="save" class="inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-gray-700 focus:bg-gray-700 focus:outline-none disabled:opacity-25" @disabled($isPeriodClosed)>
-                Guardar mes
-            </button>
-            <a href="{{ route('exports.zone.excel', ['indicator' => $indicator->code, 'year' => $selectedYear, 'month' => $selectedMonth, 'zone_id' => $selectedZoneId]) }}" class="rounded-md border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
-                Exportar Excel (Zona)
-            </a>
-            <a href="{{ route('exports.zone.pdf', ['indicator' => $indicator->code, 'year' => $selectedYear, 'month' => $selectedMonth, 'zone_id' => $selectedZoneId]) }}" class="rounded-md border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50">
-                Exportar PDF (Zona)
-            </a>
-        </div>
     </div>
 
     @if ($showImprovementModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
             <div class="w-full max-w-4xl rounded-md bg-white p-6 shadow-xl space-y-4">
                 <div class="flex items-center justify-between">
-                    <h3 class="font-semibold text-lg">Mejora global obligatoria</h3>
+                    <h3 class="font-semibold text-lg">Analisis de resultados (obligatorio)</h3>
                     <button type="button" wire:click="closeImprovementModal" class="text-gray-500">Cerrar</button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 {{ $complies ? 'md:grid-cols-3' : 'md:grid-cols-4' }} gap-4">
                     <div>
                         <x-input-label value="Analisis" />
                         <textarea wire:model.defer="improvementAnalysis" rows="5" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
@@ -273,11 +240,17 @@
                         <x-input-label value="Accion definida" />
                         <textarea wire:model.defer="improvementActionDefined" rows="5" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
                     </div>
+                    @if (! $complies)
+                        <div>
+                            <x-input-label value="Debe agregar mejora" />
+                            <textarea wire:model.defer="improvementRequired" rows="5" class="mt-1 block w-full rounded-md border-amber-300 bg-amber-50 text-amber-900" placeholder="Describe la mejora requerida porque no se cumplio la meta..."></textarea>
+                        </div>
+                    @endif
                 </div>
                 <div class="flex justify-end gap-3">
                     <button type="button" wire:click="closeImprovementModal" class="rounded-md border border-gray-300 px-4 py-2 text-sm">Cancelar</button>
-                    <button type="button" wire:click="saveImprovement" class="inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-gray-700 focus:bg-gray-700 focus:outline-none disabled:opacity-25">
-                        Guardar mejora
+                    <button type="button" wire:click="save" class="inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-gray-700 focus:bg-gray-700 focus:outline-none disabled:opacity-25">
+                        Guardar mes
                     </button>
                 </div>
             </div>
@@ -354,15 +327,18 @@
 
         function buildOption(payload) {
             const months = payload.months || [];
-            const total = payload.total_personal || [];
-            const trained = payload.personal_capacitado || [];
+            const denominator = payload.denominator || [];
+            const numerator = payload.numerator || [];
             const result = payload.result_percentage || [];
             const meta = payload.meta || [];
             const year = payload.year || '';
+            const denominatorLabel = payload.denominator_label || 'Total base';
+            const numeratorLabel = payload.numerator_label || 'Total cumplido';
+            const chartTitle = payload.title || ('Nivel de cumplimiento ' + year);
 
             return {
                 title: {
-                    text: 'Nivel de cumplimiento personas operativas capacitadas ' + year,
+                    text: chartTitle,
                     left: 'center',
                     top: 10,
                     textStyle: { fontSize: 24, fontWeight: 'bold' }
@@ -371,7 +347,7 @@
                 grid: { left: 55, right: 30, top: 65, bottom: 35 },
                 legend: {
                     bottom: 0,
-                    data: ['Total personal', 'Personal capacitado', '% Cumplimiento', 'Meta']
+                    data: [denominatorLabel, numeratorLabel, '% Cumplimiento', 'Meta']
                 },
                 xAxis: [{
                     type: 'category',
@@ -379,12 +355,12 @@
                     axisLabel: { fontWeight: 'bold' }
                 }],
                 yAxis: [
-                    { type: 'value', name: 'Personas' },
+                    { type: 'value', name: 'Valor' },
                     { type: 'value', name: '%', min: 0, max: 100, splitLine: { show: false } }
                 ],
                 series: [
-                    ...cylinderBar('Total personal', total, ['#90b8ff', '#2f6fd9'], '#2a4f86'),
-                    ...cylinderBar('Personal capacitado', trained, ['#d8f3a5', '#78b63f'], '#3e7f23'),
+                    ...cylinderBar(denominatorLabel, denominator, ['#90b8ff', '#2f6fd9'], '#2a4f86'),
+                    ...cylinderBar(numeratorLabel, numerator, ['#d8f3a5', '#78b63f'], '#3e7f23'),
                     {
                         name: '% Cumplimiento',
                         type: 'line',

@@ -8,6 +8,7 @@ use App\Http\Requests\PeriodReopenRequest;
 use App\Models\IndicatorCapture;
 use App\Models\Period;
 use App\Services\AuditLogService;
+use App\Services\YearRangeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,7 +16,10 @@ use Illuminate\View\View;
 
 class PeriodController extends Controller
 {
-    public function __construct(private readonly AuditLogService $auditLogService)
+    public function __construct(
+        private readonly AuditLogService $auditLogService,
+        private readonly YearRangeService $yearRangeService
+    )
     {
         $this->authorizeResource(Period::class, 'period');
     }
@@ -23,8 +27,9 @@ class PeriodController extends Controller
     public function index(): View
     {
         $periods = Period::query()->orderByDesc('year')->orderByDesc('month')->paginate(24);
+        $years = $this->yearRangeService->years();
 
-        return view('admin.periods.index', compact('periods'));
+        return view('admin.periods.index', compact('periods', 'years'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -32,7 +37,7 @@ class PeriodController extends Controller
         $this->authorize('create', Period::class);
 
         $validated = $request->validate([
-            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'year' => $this->yearRangeService->validationRules(),
             'month' => ['required', 'integer', 'min:1', 'max:12'],
             'status' => ['required', Rule::in([Period::STATUS_OPEN, Period::STATUS_CLOSED])],
         ]);

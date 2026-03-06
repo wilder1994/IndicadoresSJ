@@ -16,7 +16,6 @@ class FtOp09Form extends BaseIndicatorForm
         return [
             'form.armas_programadas' => ['required', 'numeric', 'min:0.01'],
             'form.armas_inspeccionadas' => ['required', 'numeric', 'min:0'],
-            'analysisText' => ['required', 'string'],
         ];
     }
 

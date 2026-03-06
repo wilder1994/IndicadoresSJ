@@ -18,6 +18,7 @@ class Improvement extends Model
         'analysis',
         'action_taken',
         'action_defined',
+        'improvement_required',
         'integrated_analysis_block',
         'created_by_user_id',
     ];

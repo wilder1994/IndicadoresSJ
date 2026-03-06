@@ -16,7 +16,6 @@ class FtOp05Form extends BaseIndicatorForm
         return [
             'form.visitas_programadas' => ['required', 'numeric', 'min:0.01'],
             'form.visitas_realizadas' => ['required', 'numeric', 'min:0'],
-            'analysisText' => ['required', 'string'],
         ];
     }
 

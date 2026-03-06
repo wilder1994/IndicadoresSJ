@@ -11,8 +11,12 @@
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
                     <div>
-                        <x-input-label value="Año" />
-                        <x-text-input type="number" name="year" class="mt-1 block w-full" value="{{ $year }}" />
+                        <x-input-label value="Ano" />
+                        <select name="year" class="mt-1 block w-full rounded-md border-gray-300">
+                            @foreach ($years as $yearOption)
+                                <option value="{{ $yearOption }}" @selected($year === (int) $yearOption)>{{ $yearOption }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <x-input-label value="Mes" />
@@ -39,7 +43,7 @@
                                 <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">{{ str_replace('_', ' ', $field) }}</th>
                             @endforeach
                             <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">%</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Semáforo</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Semaforo</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
@@ -65,14 +69,14 @@
                             <p class="text-xs text-gray-500">A) Frecuencia</p>
                             <p>Numerador: {{ $monthly['consolidated']['a']['numerator'] }}</p>
                             <p>Denominador: {{ $monthly['consolidated']['a']['denominator'] }}</p>
-                            <p>%: {{ $monthly['consolidated']['a']['result_percentage'] !== null ? number_format($monthly['consolidated']['a']['result_percentage'],2).'%' : '-' }}</p>
+                            <p>%: {{ $monthly['consolidated']['a']['result_percentage'] !== null ? number_format($monthly['consolidated']['a']['result_percentage'], 2).'%' : '-' }}</p>
                             <p class="{{ $monthly['consolidated']['a']['semaforo'] === 'VERDE' ? 'text-emerald-600' : 'text-red-600' }}">{{ $monthly['consolidated']['a']['semaforo'] }}</p>
                         </div>
                         <div class="rounded border border-gray-200 p-4">
-                            <p class="text-xs text-gray-500">B) Impacto económico</p>
+                            <p class="text-xs text-gray-500">B) Impacto economico</p>
                             <p>Numerador: {{ $monthly['consolidated']['b']['numerator'] }}</p>
                             <p>Denominador: {{ $monthly['consolidated']['b']['denominator'] }}</p>
-                            <p>%: {{ $monthly['consolidated']['b']['result_percentage'] !== null ? number_format($monthly['consolidated']['b']['result_percentage'],2).'%' : '-' }}</p>
+                            <p>%: {{ $monthly['consolidated']['b']['result_percentage'] !== null ? number_format($monthly['consolidated']['b']['result_percentage'], 2).'%' : '-' }}</p>
                             <p class="{{ $monthly['consolidated']['b']['semaforo'] === 'VERDE' ? 'text-emerald-600' : 'text-red-600' }}">{{ $monthly['consolidated']['b']['semaforo'] }}</p>
                         </div>
                         <div class="rounded border border-gray-200 p-4">
@@ -92,10 +96,10 @@
                         </div>
                         <div class="rounded border border-gray-200 p-4">
                             <p class="text-xs text-gray-500">% consolidado</p>
-                            <p class="text-lg font-semibold">{{ $monthly['consolidated']['result_percentage'] !== null ? number_format($monthly['consolidated']['result_percentage'],2).'%' : '-' }}</p>
+                            <p class="text-lg font-semibold">{{ $monthly['consolidated']['result_percentage'] !== null ? number_format($monthly['consolidated']['result_percentage'], 2).'%' : '-' }}</p>
                         </div>
                         <div class="rounded border border-gray-200 p-4">
-                            <p class="text-xs text-gray-500">Semáforo</p>
+                            <p class="text-xs text-gray-500">Semaforo</p>
                             <p class="text-lg font-semibold {{ $monthly['consolidated']['semaforo'] === 'VERDE' ? 'text-emerald-600' : 'text-red-600' }}">{{ $monthly['consolidated']['semaforo'] }}</p>
                         </div>
                     </div>
@@ -114,7 +118,7 @@
                                     <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Programados</th>
                                     <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Realizados</th>
                                     <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">%</th>
-                                    <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Semáforo</th>
+                                    <th class="px-3 py-2 text-left text-xs uppercase text-gray-500">Semaforo</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
@@ -123,19 +127,19 @@
                                         <td class="px-3 py-2 text-sm">{{ $zr['zone']->code }}</td>
                                         <td class="px-3 py-2 text-sm">{{ $zr['denominator'] }}</td>
                                         <td class="px-3 py-2 text-sm">{{ $zr['numerator'] }}</td>
-                                        <td class="px-3 py-2 text-sm">{{ $zr['result_percentage'] !== null ? number_format($zr['result_percentage'],2).'%' : '-' }}</td>
+                                        <td class="px-3 py-2 text-sm">{{ $zr['result_percentage'] !== null ? number_format($zr['result_percentage'], 2).'%' : '-' }}</td>
                                         <td class="px-3 py-2 text-sm">{{ $zr['semaforo'] }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
-                        <p class="text-sm"><strong>Consolidado {{ $q }}:</strong> {{ $data['consolidated']['result_percentage'] !== null ? number_format($data['consolidated']['result_percentage'],2).'%' : '-' }} ({{ $data['consolidated']['semaforo'] }})</p>
+                        <p class="text-sm"><strong>Consolidado {{ $q }}:</strong> {{ $data['consolidated']['result_percentage'] !== null ? number_format($data['consolidated']['result_percentage'], 2).'%' : '-' }} ({{ $data['consolidated']['semaforo'] }})</p>
                     @endforeach
                 </div>
             @endif
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <h3 class="font-semibold mb-3">Gráfico 3D (mes seleccionado)</h3>
+                <h3 class="font-semibold mb-3">Grafico 3D (mes seleccionado)</h3>
                 <div id="motherChart3d" style="width: 100%; height: 480px;"></div>
             </div>
         </div>

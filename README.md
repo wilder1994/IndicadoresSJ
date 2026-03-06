@@ -1,66 +1,126 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# IndicadoresSJ
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema Laravel para captura, seguimiento y consolidacion de indicadores operativos por zona.
 
-## About Laravel
+## Modulos principales
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- `Dashboard`: tablero operativo del usuario con resumen general, acceso por zona y actividad reciente.
+- `Zonas`: tablero ejecutivo por zona con filtros de ano y mes.
+- `Indicadores`: captura mensual por indicador y zona.
+- `MADRE`: consolidado administrativo por indicador.
+- `Dashboard Ops`: tablero ejecutivo administrativo.
+- `Periodos`: apertura, cierre y reapertura de periodos.
+- `Zonas` y `Usuarios`: administracion base.
+- `Auditoria`: trazabilidad de cambios.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requisitos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.1
+- Composer
+- Node.js 18
+- MySQL
+- Laragon o entorno equivalente
 
-## Learning Laravel
+## Configuracion
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Archivo `.env` minimo relevante:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```env
+APP_NAME=IndicadoresSJ
+APP_ENV=local
+APP_KEY=base64:...
+APP_URL=http://172.16.16.90:8081
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=indicadoressj
+DB_USERNAME=root
+DB_PASSWORD=
 
-## Laravel Sponsors
+SYSTEM_BASE_YEAR=2026
+SYSTEM_FUTURE_YEAR_OFFSET=10
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Rango de anos
 
-### Premium Partners
+El sistema usa un rango de anos unificado en todo el proyecto.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Regla actual:
 
-## Contributing
+- ano minimo: el menor entre `SYSTEM_BASE_YEAR` y el ano mas antiguo existente en `periods`
+- ano maximo: el mayor entre `ano actual + SYSTEM_FUTURE_YEAR_OFFSET` y el ano mas alto existente en `periods`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Esto permite:
 
-## Code of Conduct
+- consultar anos historicos ya guardados
+- operar anos futuros sin tocar codigo
+- mantener consistencia entre indicadores, dashboard, MADRE, periodos y exportes
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+La logica esta centralizada en:
 
-## Security Vulnerabilities
+- [app/Services/YearRangeService.php](app/Services/YearRangeService.php)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Instalacion
 
-## License
+```bash
+composer install
+npm install
+php artisan key:generate
+php artisan migrate --seed
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Desarrollo
+
+Compilar frontend:
+
+```bash
+npm run build
+```
+
+Limpiar cache de Laravel:
+
+```bash
+php artisan view:clear
+php artisan optimize:clear
+```
+
+## Flujo funcional
+
+1. Crear o abrir periodos.
+2. Registrar capturas mensuales por indicador y zona.
+3. Completar el analisis desde modal segun el indicador.
+4. Consultar tablero del usuario en `/dashboard`.
+5. Consultar tablero por zona en `/zonas/{zone}`.
+6. Consultar consolidado por indicador en MADRE.
+7. Consultar tablero ejecutivo en `admin/dashboard`.
+
+## Estado actual de dashboards
+
+### Dashboard del usuario
+
+- filtro unificado por ano y mes
+- resumen ejecutivo del periodo
+- KPI de score medio, cobertura media, alertas y zonas criticas
+- bloque de balance del periodo con focos de atencion autoincrementables segun zonas visibles
+- layout adaptativo:
+  - vista enfocada si el usuario solo ve una zona
+  - vista comparativa si ve varias zonas
+- actividad reciente en dos columnas
+- accesos por zona con enlace directo a cada tablero zonal
+
+### Dashboard por zona
+
+- cabecera con ano, mes y estado del periodo
+- panorama operativo de la zona
+- score, cobertura y comparacion con periodo anterior
+- focos de atencion
+- estado de indicadores
+- tendencia de 6 meses
+- actividad reciente
+- mapa operativo de indicadores con acceso directo
+
+## Notas
+
+- FT-OP-03 tiene una vista especial por su estructura de doble medicion y clasificacion de siniestros.
+- Los cambios de frontend deben cerrarse con `npm run build`, `php artisan view:clear` y `php artisan optimize:clear`.

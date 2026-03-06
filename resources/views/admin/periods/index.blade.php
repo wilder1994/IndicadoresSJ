@@ -23,8 +23,12 @@
                 <form method="POST" action="{{ route('admin.periods.store') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     @csrf
                     <div>
-                        <x-input-label for="year" value="Año" />
-                        <x-text-input id="year" name="year" type="number" class="mt-1 block w-full" value="{{ old('year', now()->year) }}" />
+                        <x-input-label for="year" value="Ano" />
+                        <select id="year" name="year" class="mt-1 block w-full rounded-md border-gray-300">
+                            @foreach ($years as $yearOption)
+                                <option value="{{ $yearOption }}" @selected((int) old('year', now()->year) === (int) $yearOption)>{{ $yearOption }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <x-input-label for="month" value="Mes" />

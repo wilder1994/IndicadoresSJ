@@ -7,6 +7,7 @@ use App\Models\DashboardSummary;
 use App\Models\Zone;
 use App\Services\AuditLogService;
 use App\Services\Dashboard\OperationsDashboardService;
+use App\Services\YearRangeService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,8 @@ class OperationsDashboardController extends Controller
 {
     public function __construct(
         private readonly OperationsDashboardService $dashboardService,
-        private readonly AuditLogService $auditLogService
+        private readonly AuditLogService $auditLogService,
+        private readonly YearRangeService $yearRangeService
     ) {
     }
 
@@ -24,7 +26,7 @@ class OperationsDashboardController extends Controller
     {
         $this->authorize('viewAny', DashboardSummary::class);
 
-        $year = (int) $request->integer('year', now()->year);
+        $year = $this->yearRangeService->normalize((int) $request->integer('year', now()->year));
         $month = (int) $request->integer('month', now()->month);
         $dashboard = $this->dashboardService->build($year, $month);
         $summary = DashboardSummary::query()->where(['year' => $year, 'month' => $month])->first();
@@ -36,13 +38,15 @@ class OperationsDashboardController extends Controller
             metadata: ['year' => $year, 'month' => $month]
         );
 
-        return view('admin.dashboard.index', compact('year', 'month', 'dashboard', 'summary'));
+        $years = $this->yearRangeService->years();
+
+        return view('admin.dashboard.index', compact('year', 'month', 'years', 'dashboard', 'summary'));
     }
 
     public function saveSummary(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'year' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'year' => $this->yearRangeService->validationRules(),
             'month' => ['required', 'integer', 'min:1', 'max:12'],
             'summary_text' => ['required', 'string'],
         ]);
@@ -83,7 +87,7 @@ class OperationsDashboardController extends Controller
     {
         $this->authorize('viewAny', DashboardSummary::class);
 
-        $year = (int) $request->integer('year', now()->year);
+        $year = $this->yearRangeService->normalize((int) $request->integer('year', now()->year));
         $month = (int) $request->integer('month', now()->month);
         $rows = $this->dashboardService->zoneSummary($year, $month, $zone);
 
@@ -101,7 +105,7 @@ class OperationsDashboardController extends Controller
     {
         $this->authorize('viewAny', DashboardSummary::class);
 
-        $year = (int) $request->integer('year', now()->year);
+        $year = $this->yearRangeService->normalize((int) $request->integer('year', now()->year));
         $month = (int) $request->integer('month', now()->month);
         $dashboard = $this->dashboardService->build($year, $month);
         $summary = DashboardSummary::query()->where(['year' => $year, 'month' => $month])->first();
